@@ -11,10 +11,11 @@ import Languages from '../../constants/Languages';
 import Themes from '../../constants/Themes';
 import { useParams } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
-import { GET_PROBLEM_BY_TITLE_SLUG } from '../../api';
+import { CREATE_SUBMISSION, GET_PROBLEM_BY_TITLE_SLUG } from '../../api';
 import { ProblemData } from '../../types/problem.types';
 import { difficultyDesign } from '../../constants/dynamicDesign';
 import { userSnippet } from '../../utils/utils';
+import socketService from '../../socket/socketClient';
 
 type languageSupport = {
     languageName: string,
@@ -34,6 +35,7 @@ function Description() {
     const [language, setLanguage] = useState('cpp');
     const [code, setCode] = useState('');
     const [theme, setTheme] = useState('monokai');
+    const [isSubmitResponse, setIsSubmitResponse] = useState(true);
 
     const { id } = useParams();
     const problemDetailResponse = useApi<ProblemData>(GET_PROBLEM_BY_TITLE_SLUG(id));
@@ -44,21 +46,29 @@ function Description() {
             setCode(userSnippet(problemDetail?.codeStubs, language));
         }
     }, [problemDetail, language]);
-    const sanitizedMarkdown = DOMPurify.sanitize(problemDetail?.description || "");
+
+
+    const sanitizedMarkdown = DOMPurify.sanitize(problemDetail?.description ?? "");
     async function handleSubmission() {
         try {
             console.log(code)
             console.log(language)
-            const response = await axios.post("http://localhost:5000/api/v1/submissions", {
+            setIsSubmitResponse(false);
+            socketService.setUserId("1");
+            const response = await axios.post(CREATE_SUBMISSION(), {
                 code,
                 language,
                 userId: "1",
-                problemId: "6671b5e86f909d206b2d40a4"
+                problemId: problemDetail?._id
             });
+            const submissionPayload = await socketService.getSubmissionPayload();
+            setIsSubmitResponse(true);
+            console.log(submissionPayload);
             console.log(response);
             return response;
         } catch (error) {
             console.log(error);
+            setIsSubmitResponse(true);
         }
     }
 
@@ -131,7 +141,7 @@ function Description() {
 
                 <div className='flex gap-x-1.5 justify-start items-center px-4 py-2 basis-[5%]'>
                     <div>
-                        <button className="btn btn-success btn-sm" onClick={handleSubmission}>Submit</button>
+                        <button className="btn btn-success btn-sm" onClick={handleSubmission}>{isSubmitResponse ? "Submit" : "loading"}</button>
                     </div>
                     <div>
                         <button className="btn btn-warning btn-sm">Run Code</button>
