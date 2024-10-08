@@ -1,13 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { SOCKET_URL } from "../api";
 
-interface SubmissionResponse {
-    userId: string;
-    payload: Payload;
-
-}
-
-interface Payload {
+export interface SubmissionResponse {
     response: Response,
     userId: string,
     submissionId: string
@@ -40,7 +34,7 @@ class SocketService {
         this.socket.emit("setUserId", userId);
     }
 
-    public getSubmissionPayload() {
+    public getSubmissionPayload(): Promise<SubmissionResponse> {
         return new Promise((resolve, reject) => {
             this.socket.once("submissionPayloadResponse", (response: SubmissionResponse) => {
                 resolve(response);
@@ -48,7 +42,7 @@ class SocketService {
 
             setTimeout(() => {
                 reject(new Error("Response not received within timeout"));
-            }, 30000);
+            }, 20000);
         });
     }
 
